@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% import '_badges.html' as b %}
+{% set active = 'overview' %}
+{% block title %}{{ a.code }} · 威克夫量价分析{% endblock %}
+{% block head %}<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>{% endblock %}
+{% block meta %}数据截至 {{ a.last_date or '—' }} · 生成于 {{ a.generated_at.strftime('%Y-%m-%d %H:%M') }}{% endblock %}
+{% block content %}
+{% set cur = a.current %}
+{% set row = a.to_overview_row() %}
+<div class="page-head">
+  <div>
+    <h1>{{ a.code }} <span class="muted" style="font-weight:400;font-size:15px">{{ a.market_zh }} · 日线</span></h1>
+    <p class="sub">{{ a.df | length }} 根 K 线，{{ a.quality.first }} 至 {{ a.quality.last }}</p>
+  </div>
+  {% if web %}
+  <div class="actions">
+    <button class="btn" hx-post="/symbol/{{ a.market }}/{{ a.code }}/reanalyze" hx-target="#tasks" hx-swap="innerHTML">更新数据并重新分析</button>
+    <form method="post" action="/symbol/{{ a.market }}/{{ a.code }}/delete" onsubmit="return confirm('从自选清单删除 {{ a.code }}？缓存数据会保留。')"><button class="btn danger">从自选清单删除</button></form>
+  </div>
+  {% endif %}
+</div>
+{% if web %}<div id="tasks" hx-get="/tasks?symbol={{ a.market }}:{{ a.code }}" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>{% endif %}
+
+<div class="headline {{ 'acc' if cur.kind == 'accumulation' else ('dist' if cur.kind == 'distribution' else '') }}">
+  <div class="text">{{ a.headline }}</div>
+  <div><span class="price num">{{ a.last_close | price }}</span>{{ b.change(a.change_pct) }}</div>
+</div>
+
+{% for w in a.quality.warnings %}<div class="alert warn">{{ w }}</div>{% endfor %}
+
+<div class="grid cols-4 section">
+  <div class="card stat"><div class="label">当前阶段</div><div class="value">{{ b.phase_badge(row) }}</div>
+    <div class="note">{% if cur.phase %}{{ phase_name(cur.kind, cur.phase) }}{% if cur.confidence %} · 可信度{{ a.confidence_zh }}{% endif %}{% else %}不在任何交易区间里{% endif %}</div></div>
+  <div class="card stat"><div class="label">交易区间</div>
+    <div class="value num">{% if cur.lower %}{{ cur.lower | price }} <small>至</small> {{ cur.upper | price }}{% else %}—{% endif %}</div>
+    <div class="note">{% if cur.lower and a.last_close %}现价在区间 {{ ((a.last_close - cur.lower) / (cur.upper - cur.lower)) | pct(0, false) }} 位置{% else %}无活动区间{% endif %}</div></div>
+  <div class="card stat"><div class="label">最近事件</div>
+    <div class="value">{% if a.latest_event %}{{ b.event_badge(a.latest_event.kind) }}{% else %}—{% endif %}</div>
+    <div class="note">{% if a.latest_event %}{{ a.latest_event.confirmed.date() }} 确认 · {{ cur.days_since_event }} 天前{% else %}历史上没有识别出事件{% endif %}</div></div>
+  <div class="card stat"><div class="label">趋势（{{ a.params.trend_sma }} 日均线）</div><div class="value">{{ cur.trend or '—' }}</div>
+    <div class="note">ATR {{ a.result.frame['atr'].iloc[-1] | num }} · 量比 {{ a.result.frame['vol_ratio'].iloc[-1] | num }}</div></div>
+</div>
+
+<div class="card section">
+  <div class="card-head"><h2>K 线与事件标记</h2><span class="hint">拖动平移，滚轮缩放；标记画在发生日，悬停查看确认日和触发规则</span></div>
+  <div class="card-body" style="padding:8px 8px 0"><div id="chart" class="chart"></div></div>
+  <div class="legend-note">
+    <span style="color:var(--acc)">▲ SC</span>、<span style="color:var(--acc)">★ Spring</span>、<span style="color:var(--acc)">↑ SOS</span> 属于吸筹；
+    <span style="color:var(--dist)">▼ BC</span>、<span style="color:var(--dist)">★ UTAD</span>、<span style="color:var(--dist)">↓ SOW</span> 属于派发；● AR 是高潮后的第一波反向运动。虚线框是交易区间，绿色吸筹、红色派发。
+  </div>
+</div>
+
+<div class="card flush section">
+  <div class="card-head"><h2>最近一年的事件</h2><span class="hint">统计列来自回测标的池（{{ a.market_zh }}），持有 20 根 K 线</span></div>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>事件</th><th>发生日</th><th>确认日</th><th class="r">价格</th><th class="r">量比</th><th>历史胜率 · 平均收益 · 超额</th><th>结论</th></tr></thead>
+    <tbody>
+    {% for ev in a.recent_events %}
+    {% set e = ev.event %}
+    <tr>
+      <td>{{ b.event_badge(e.kind) }}{% if e.volume_class %}<span class="sub">{{ e.volume_class }}</span>{% endif %}<span class="sub rule" title="{{ e.rule }}">{{ e.rule }}</span></td>
+      <td class="num">{{ e.occurred.date() }}</td>
+      <td class="num">{{ e.confirmed.date() }}{% if e.confirmed != e.occurred %}<span class="sub">{{ (e.confirmed - e.occurred).days }} 天后</span>{% endif %}</td>
+      <td class="r num">{{ e.price | price }}</td>
+      <td class="r num">{{ e.vol_ratio | num if e.vol_ratio is not none else '—' }}</td>
+      <td class="num">{% if ev.h20 and ev.h20.n %}{{ ev.h20.win_rate | pct(0, false) }} · {{ ev.h20.mean | pct }} · {{ ev.h20.excess_mean | pct }}<span class="sub">{{ ev.h20.n }} 个样本</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td>{{ b.verdict_badge(ev.verdict) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7"><div class="empty"><strong>最近一年没有已确认的事件</strong>图表里可以查看更早的历史。</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% if a.result.structures %}
+<div class="card flush section">
+  <div class="card-head"><h2>历史交易区间</h2><span class="hint">共 {{ a.result.structures | length }} 个</span></div>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>类型</th><th>高潮日</th><th class="r">下沿</th><th class="r">上沿</th><th>区间确认</th><th>测试</th><th>突破</th><th>结束</th><th>结局</th></tr></thead>
+    <tbody>
+    {% for s in a.result.structures | reverse %}
+    <tr>
+      <td><span class="badge {{ 'acc' if s.kind == 'accumulation' else 'dist' }}">{{ s.zh }}</span></td>
+      <td class="num">{{ s.climax_date.date() }}</td>
+      <td class="r num">{{ s.lower | price }}</td><td class="r num">{{ s.upper | price }}</td>
+      <td class="num">{{ s.range_confirmed.date() if s.range_confirmed else '—' }}</td>
+      <td class="num">{{ s.test_confirmed.date() if s.test_confirmed else '—' }}</td>
+      <td class="num">{{ s.breakout.date() if s.breakout else '—' }}</td>
+      <td class="num">{{ s.end.date() if s.end else '—' }}</td>
+      <td class="muted">{{ {'breakout':'突破','failed':'区间失败','abandoned':'未成立','breakout_failed':'突破后回到区间','new_climax':'出现新高潮','ongoing':'进行中'}[s.end_reason] }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card section">
+  <div class="card-head"><h2>术语说明</h2></div>
+  <div class="card-body"><dl class="terms">
+    {% for k, info in EVENT_INFO.items() %}<dt>{{ event_name(k) }}（{{ info.zh }}）</dt><dd>{{ info.desc }}</dd>{% endfor %}
+    <dt>阶段 A–E</dt><dd>A 止跌/止涨 → B 区间震荡 → C 测试（Spring/UTAD）→ D 突破 → E 趋势展开</dd>
+    <dt>ATR</dt><dd>平均真实波幅，衡量一个标的平时每天波动多大；所有阈值都用它的倍数表示</dd>
+    <dt>量比</dt><dd>当日成交量 ÷ 过去 {{ a.params.volume_period }} 日平均成交量</dd>
+  </dl>
+  <p class="muted small mt-8">{{ DISCLAIMER }}</p></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  var fig = {{ figure_json | safe }};
+  fig.layout.autosize = true;
+  Plotly.newPlot('chart', fig.data, fig.layout, {responsive: true, scrollZoom: true, displaylogo: false,
+    modeBarButtonsToRemove: ['select2d','lasso2d','autoScale2d'], locale: 'zh-CN'});
+})();
+</script>
+{% endblock %}

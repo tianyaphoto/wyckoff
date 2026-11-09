@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% set active = 'watchlist' %}
+{% block title %}自选清单 · 威克夫量价分析{% endblock %}
+{% block meta %}{{ items.us | length + items.crypto | length }} 个标的{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>管理自选清单</h1>
+    <p class="sub">新增标的会先校验代码是否存在，然后写入 config/watchlist.yaml，再在后台拉取历史数据并分析。删除只从清单移除，缓存数据保留。</p>
+  </div>
+</div>
+<div id="tasks" hx-get="/tasks" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>
+<div id="watchlist-panel" class="section">
+{% include '_watchlist_panel.html' %}
+</div>
+{% endblock %}

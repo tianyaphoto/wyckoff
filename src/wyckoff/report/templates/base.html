@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}威克夫量价分析{% endblock %}</title>
+<style>{{ CSS | safe }}</style>
+{% if web %}<script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js" defer></script>{% endif %}
+{% block head %}{% endblock %}
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="{{ link_overview }}"><span class="mark">W</span>威克夫量价分析<small>日线</small></a>
+    <nav class="nav">
+      <a href="{{ link_overview }}" class="{{ 'active' if active == 'overview' }}">总览</a>
+      {% if web %}<a href="{{ link_watchlist }}" class="{{ 'active' if active == 'watchlist' }}">自选清单</a>{% endif %}
+      <a href="{{ link_stats }}" class="{{ 'active' if active == 'stats' }}">事件统计</a>
+    </nav>
+    <span class="spacer"></span>
+    <span class="meta">{% block meta %}{% endblock %}</span>
+  </div>
+</header>
+<main class="page">
+{% block content %}{% endblock %}
+</main>
+<footer class="footer">
+  <span>{{ DISCLAIMER }}</span>
+  <span>Wyckoff 工具 v{{ VERSION }} · 数据：美股 Yahoo Finance（复权）· 加密货币 币安现货（UTC 日线，USDT 成交额）</span>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

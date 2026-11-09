@@ -1,0 +1,41 @@
+<div class="card">
+  <div class="card-head"><h2>新增标的</h2><span class="hint">美股输入代码如 AMD、BRK-B；加密货币输入 DOGE 或 DOGE/USDT</span></div>
+  <div class="card-body">
+    <form class="form-row" hx-post="/watchlist/add" hx-target="#watchlist-panel" hx-swap="innerHTML" hx-indicator="#add-btn">
+      <div class="field"><label for="market">市场</label>
+        <select class="select" id="market" name="market">
+          <option value="us">美股</option><option value="crypto">加密货币</option>
+        </select></div>
+      <div class="field"><label for="code">代码</label>
+        <input class="input" id="code" name="code" placeholder="例如 AMD 或 DOGE/USDT" value="{{ code_value or '' }}" required autocomplete="off"></div>
+      <button class="btn primary" id="add-btn" type="submit">添加并分析</button>
+    </form>
+    {% if error %}<div class="alert error" role="alert">{{ error }}</div>{% endif %}
+    {% if ok %}<div class="alert ok" role="status">{{ ok }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="grid cols-3 section" style="grid-template-columns: 1fr 1fr">
+{% for m in MARKETS %}
+<div class="card flush">
+  <div class="card-head"><h2>{{ MARKET_NAMES[m] }}</h2><span class="hint">{{ items[m] | length }} 个</span></div>
+  <table class="table">
+    <tbody>
+    {% for c in items[m] %}
+    <tr>
+      <td class="code"><a class="row-link" href="/symbol/{{ m }}/{{ c }}">{{ c }}</a></td>
+      <td class="r">
+        <form hx-post="/watchlist/remove" hx-target="#watchlist-panel" hx-swap="innerHTML" hx-confirm="从自选清单删除 {{ c }}？缓存数据会保留。" style="display:inline">
+          <input type="hidden" name="market" value="{{ m }}"><input type="hidden" name="code" value="{{ c }}">
+          <button class="btn sm danger" type="submit" aria-label="删除 {{ c }}">删除</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="2"><div class="empty">还没有标的</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+</div>

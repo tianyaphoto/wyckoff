@@ -1,0 +1,11 @@
+{% import '_badges.html' as b %}
+{% for r in rows %}
+<tr>
+  <td class="code"><a class="row-link" href="{{ link_symbol(r.market, r.code) }}">{{ r.code }}</a><span class="sub">{{ r.market_zh }}</span></td>
+  <td class="r num">{{ r.last_close | price }}<span class="sub">{{ b.change(r.change_pct) }}</span></td>
+  <td>{{ b.phase_badge(r) }}{% if r.candidate %}<span class="sub">候选 {{ r.candidate }}，等待 AR 确认</span>{% endif %}</td>
+  <td>{% if r.latest_event_kind %}{{ b.event_badge(r.latest_event_kind) }}<span class="sub">{{ r.latest_event_date }} 确认 · {{ r.latest_event_days }} 天前</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td class="r num muted">{{ r.last_date or '—' }}</td>
+  <td>{% if r.warnings %}<span class="badge warn" title="{{ r.warnings | join('；') }}">{{ r.warnings[0] }}</span>{% endif %}</td>
+</tr>
+{% endfor %}

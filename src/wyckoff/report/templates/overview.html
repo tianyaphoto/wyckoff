@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% set active = 'overview' %}
+{% block title %}总览 · 威克夫量价分析{% endblock %}
+{% block meta %}{{ rows | length }} 个标的{% endblock %}
+{% block content %}
+{% set n_struct = rows | selectattr('phase') | list | length %}
+{% set n_acc = rows | selectattr('kind', 'equalto', 'accumulation') | list | length %}
+{% set n_dist = rows | selectattr('kind', 'equalto', 'distribution') | list | length %}
+<div class="page-head">
+  <div>
+    <h1>自选清单总览</h1>
+    <p class="sub">{{ rows | length }} 个标的里有 {{ n_struct }} 个处在威克夫结构中：{{ n_acc }} 个吸筹，{{ n_dist }} 个派发。点击代码查看详情。</p>
+  </div>
+  {% if web %}
+  <div class="actions">
+    <button class="btn" hx-post="/update-all" hx-target="#tasks" hx-swap="innerHTML">更新全部数据</button>
+    <a class="btn primary" href="/watchlist">管理自选清单</a>
+  </div>
+  {% endif %}
+</div>
+{% if web %}<div id="tasks" hx-get="/tasks" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>{% endif %}
+
+<div class="card flush section">
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr>
+      <th>标的</th><th class="r">收盘</th><th>当前阶段</th><th>最近事件</th><th class="r">数据截至</th><th></th>
+    </tr></thead>
+    <tbody id="overview-rows">
+    {% if rows %}{% include '_overview_rows.html' %}{% else %}
+    <tr><td colspan="6"><div class="empty"><strong>自选清单是空的</strong>{% if web %}到「自选清单」页面添加标的。{% else %}编辑 config/watchlist.yaml 添加标的。{% endif %}</div></td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+  </div>
+  <div class="legend-note">阶段徽章右侧的三个点表示可信度：三个亮为高（高潮、AR、测试都已确认），两个亮为中（高潮和 AR 已确认且区间已满 {{ analyses[0].params.range_min_bars if analyses else 15 }} 根 K 线），一个亮为低。</div>
+</div>
+{% endblock %}

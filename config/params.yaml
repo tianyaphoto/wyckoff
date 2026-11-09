@@ -1,0 +1,28 @@
+# 规则参数。default 对所有市场生效，us / crypto 下的同名键按市场覆盖。
+# 所有价格阈值都以 ATR 倍数表示，美股和加密货币共用一套规则。
+default:
+  atr_period: 14            # ATR 周期
+  volume_period: 20         # 量比的平均成交量周期（不含当天）
+  trend_sma: 50             # 判断趋势方向的均线
+  extreme_lookback: 20      # 高潮日必须创多少日新低/新高（不含当天）
+  warmup_bars: 50           # 前多少根 K 线不做识别
+  climax_range_atr: 2.0     # 高潮日振幅 ≥ 多少倍 ATR
+  climax_volume_ratio: 2.5  # 高潮日量比 ≥ 多少
+  ar_window: 10             # 高潮后多少根 K 线内必须出现 ≥ ar_move_atr 的反向运动
+  ar_move_atr: 2.0          # AR 距高潮极值的最小距离，ATR 倍数
+  ar_confirm_atr: 1.0       # 从 AR 极值回落多少 ATR 确认 AR
+  ar_max_bars: 30           # 高潮后超过多少根 K 线仍未确认 AR 就放弃
+  range_min_bars: 15        # 区间确认需要的最少 K 线数（从 AR 确认起）
+  range_min_width_atr: 2.0  # 区间宽度下限
+  range_max_width_atr: 8.0  # 区间宽度上限
+  range_fail_atr: 1.5       # 收盘超出区间多少 ATR 视为可能失败
+  range_fail_bars: 3        # 超出后多少根 K 线内没有收回则区间失败
+  test_max_atr: 1.5         # Spring / UTAD 刺破边界的最大深度
+  test_recover_bars: 3      # 刺破后多少根 K 线内收回
+  test_low_volume_ratio: 1.0  # 刺破日量比低于此值记为“缩量”
+  breakout_atr: 0.5         # SOS / SOW 收盘超出边界的最小距离
+  breakout_volume_ratio: 1.5
+  phase_d_bars: 20          # 突破后多少根 K 线内算 D 阶段，之后为 E
+  min_history_bars: 200     # 历史不足此数的标的标注“数据不足”
+us: {}
+crypto: {}

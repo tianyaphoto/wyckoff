@@ -1,0 +1,26 @@
+{% macro phase_badge(row) -%}
+{% if row.phase %}
+<span class="badge {{ 'acc' if row.kind == 'accumulation' else 'dist' }}">{{ row.kind_zh }} · {{ row.phase }} 阶段
+  <span class="dots {{ row.confidence }}" title="可信度{{ row.confidence_zh }}"><i></i><i></i><i></i></span></span>
+{% elif row.trend %}
+<span class="badge neutral">无结构 · {{ row.trend }}</span>
+{% else %}
+<span class="badge muted">—</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro event_badge(kind) -%}
+{% set side = EVENT_INFO[kind].side %}
+<span class="badge {{ 'acc' if side > 0 else ('dist' if side < 0 else 'neutral') }}"><span class="pill-kind">{{ event_name(kind) }}</span>{{ EVENT_INFO[kind].zh }}</span>
+{%- endmacro %}
+
+{% macro verdict_badge(v) -%}
+{% if v == '显著优于基准' %}<span class="badge good">{{ v }}</span>
+{% elif v == '不显著' %}<span class="badge neutral">{{ v }}</span>
+{% elif v == '样本不足' %}<span class="badge warn">{{ v }}</span>
+{% else %}<span class="badge muted">{{ v }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro change(v) -%}
+{% if v is not none %}<span class="chg {{ 'up' if v >= 0 else 'down' }}">{{ v | pct }}</span>{% endif %}
+{%- endmacro %}

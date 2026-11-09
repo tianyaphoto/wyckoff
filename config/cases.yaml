@@ -1,0 +1,71 @@
+# 第 4 层验收用的经典案例。expected 是人工判断的事件日期（前后 3 根 K 线内算命中）。
+# 标 confirmed: false 的是我按公开资料拟的候选日期，等你确认或修改后改成 true。
+cases:
+  - name: BTC 2022 年 11 月 FTX 暴跌后的吸筹
+    market: crypto
+    symbol: BTC/USDT
+    window: ["2022-11-01", "2023-02-15"]
+    kind: accumulation
+    expected:
+      SC: "2022-11-09"
+      AR: "2022-11-10"
+      SOS: "2023-01-12"
+    confirmed: false
+  - name: BTC 2022 年 6 月 LUNA/3AC 暴跌
+    market: crypto
+    symbol: BTC/USDT
+    window: ["2022-06-01", "2022-08-01"]
+    kind: accumulation
+    expected:
+      SC: "2022-06-18"
+      AR: "2022-06-26"
+      SOS: "2022-07-19"
+    confirmed: false
+  - name: BTC 2020 年 3 月新冠暴跌
+    market: crypto
+    symbol: BTC/USDT
+    window: ["2020-03-01", "2020-05-01"]
+    kind: accumulation
+    expected:
+      SC: "2020-03-13"
+      AR: "2020-03-15"
+    confirmed: false
+  - name: SPY 2020 年 3 月新冠抛售高潮
+    market: us
+    symbol: SPY
+    window: ["2020-02-15", "2020-05-01"]
+    kind: accumulation
+    expected:
+      SC: "2020-03-16"
+      AR: "2020-03-26"
+    confirmed: false
+  - name: SPY 2022 年 10 月熊市底部（当天量比只有 1.5，更像对 6 月低点的 Spring 而不是 SC，日期待你确认）
+    market: us
+    symbol: SPY
+    window: ["2022-09-15", "2023-01-31"]
+    kind: accumulation
+    expected:
+      SC: "2022-10-13"
+    confirmed: false
+  - name: NVDA 2022 年 10 月底部（当天量比只有 1.4，日期待你确认）
+    market: us
+    symbol: NVDA
+    window: ["2022-09-15", "2023-01-31"]
+    kind: accumulation
+    expected:
+      SC: "2022-10-13"
+    confirmed: false
+  - name: 反面案例：NVDA 2023 年单边上涨
+    market: us
+    symbol: NVDA
+    window: ["2023-01-15", "2023-05-20"]
+    kind: none
+    expected: {}
+    confirmed: false
+  - name: 反面案例：BTC 2024 年初单边上涨（3 月 5 日创新高当天的巨量长上影线本身就是 BC 候选，窗口止于 2 月底）
+    market: crypto
+    symbol: BTC/USDT
+    window: ["2024-01-25", "2024-02-29"]
+    kind: none
+    expected: {}
+    confirmed: false

@@ -1,0 +1,25 @@
+{% if tasks %}
+<div class="tasks section" id="task-list">
+{% for t in tasks %}
+<div class="task {{ t.status }}" data-task-id="{{ t.id }}" data-status="{{ t.status }}">
+  <span class="code">{{ t.code }}</span>
+  <span class="steps" aria-hidden="true">
+    {% for s in ['queued', 'fetching', 'analyzing'] %}
+    {% set i = loop.index0 %}
+    <span class="step {{ 'failed' if t.status == 'failed' and i == t.step_index else ('done' if i < t.step_index or t.status == 'done' else ('active' if i == t.step_index else '')) }}"></span>
+    {% endfor %}
+  </span>
+  <span class="state">{{ t.status_zh }}</span>
+  {% if t.status == 'failed' %}<span class="small" style="color:var(--dist)">{{ t.message }}</span>
+    <button class="btn sm" hx-post="/symbol/{{ t.market }}/{{ t.code }}/reanalyze" hx-target="#tasks" hx-swap="innerHTML">重试</button>
+  {% elif t.status == 'done' %}<a class="btn sm" href="/symbol/{{ t.market }}/{{ t.code }}">查看</a>{% endif %}
+</div>
+{% endfor %}
+</div>
+{% if tasks | selectattr('active') | list %}
+<script>document.body.setAttribute('data-tasks-active', '1');</script>
+{% else %}
+<script>document.body.removeAttribute('data-tasks-active'); if (window.__wyckoffTasksWereActive) { window.__wyckoffTasksWereActive = false; if (location.pathname === '/' || location.pathname.startsWith('/symbol/')) { location.reload(); } }</script>
+{% endif %}
+{% if tasks | selectattr('active') | list %}<script>window.__wyckoffTasksWereActive = true;</script>{% endif %}
+{% endif %}

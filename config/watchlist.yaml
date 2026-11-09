@@ -1,0 +1,15 @@
+# 自选清单。Web 页面和命令行都读写这个文件，它是自选清单的唯一来源。
+us:
+  - QQQ
+  - SPY
+  - NVDA
+  - AAPL
+  - MSFT
+  - TSLA
+  - META
+  - AMZN
+crypto:
+  - BTC/USDT
+  - ETH/USDT
+  - SOL/USDT
+  - BNB/USDT
