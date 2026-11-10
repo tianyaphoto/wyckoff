@@ -2,14 +2,15 @@
 
 识别美股和加密货币日线上的威克夫阶段与关键事件（SC、AR、Spring、SOS、BC、UTAD、SOW），给每类事件附上回测标的池上的历史统计。不预测具体价格，不自动下单。
 
-设计文档：<https://claude.ai/artifact/NiJT523SZGsMMtGz4ytHNk>
+> 免责声明：本项目仅用于学习和研究。历史统计不代表未来表现，任何输出都不构成投资建议。
 
 ## 安装
 
 需要 Python 3.11 和 [uv](https://docs.astral.sh/uv/)。
 
 ```bash
-cd ~/projects/wyckoff
+git clone https://github.com/tianyaphoto/wyckoff.git
+cd wyckoff
 uv sync
 uv run playwright install chromium   # 只有跑端到端测试才需要
 ```
@@ -65,3 +66,7 @@ src/wyckoff/
   synthetic.py     合成行情：随机游走、手搭场景、镜像
 tests/             规格对照、因果性、统计校验、数据层、Web、端到端
 ```
+
+## 许可证
+
+[MIT](LICENSE)

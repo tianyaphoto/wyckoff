@@ -3,6 +3,7 @@ name = "wyckoff"
 version = "0.1.0"
 description = "威克夫量价分析工具：识别美股和加密货币日线上的威克夫阶段与事件，并给出历史统计"
 requires-python = ">=3.11"
+license = { text = "MIT" }
 dependencies = [
     "pandas>=2.2",
     "numpy>=1.26",
