@@ -12,7 +12,7 @@ from ..analysis import Analyzer, SymbolAnalysis
 from ..backtest.stats import HORIZONS, MIN_SAMPLES
 from ..config import MARKET_NAMES, MARKETS, Market, Paths
 from ..detector.events import CONFIDENCE_ZH, EVENT_INFO, PHASE_ZH, STRUCTURE_ZH, event_name, phase_name
-from .charts import figure_json
+from .charts import chart_note, figure_json
 from .explain import EVENT_PLAIN, PHASE_STEPS, explain, row_plain, schematic_svg, stats_bottom_line
 
 TEMPLATES = Path(__file__).parent / "templates"
@@ -105,7 +105,7 @@ class ReportRenderer:
         return self.env.get_template(template).render(**self._ctx(**kw))
 
     def symbol_page(self, a: SymbolAnalysis, **kw) -> str:
-        return self.render("symbol.html", a=a, figure_json=figure_json(a), **kw)
+        return self.render("symbol.html", a=a, figure_json=figure_json(a), chart_note=chart_note(a), **kw)
 
     def overview_page(self, analyses: list[SymbolAnalysis], **kw) -> str:
         rows = [x.to_overview_row() for x in analyses]

@@ -141,12 +141,36 @@ def build_figure(a: SymbolAnalysis, bars: int = 320) -> go.Figure:
             row=1, col=1,
         )
 
+    # 候选高潮：已经出现但还没等到 AR 确认，用空心标记画出来
+    cand = candidate_point(a)
+    if cand is not None:
+        kind, day = cand
+        m = MARKER[kind]
+        a_val = float(atr.loc[day]) if atr is not None and not pd.isna(atr.loc[day]) else 0.0
+        y = df.loc[day, "low"] - 1.2 * a_val if kind == "SC" else df.loc[day, "high"] + 1.2 * a_val
+        fig.add_trace(
+            go.Scatter(
+                x=[day], y=[y], mode="markers+text", name=f"候选 {kind}（未确认）", text=[f"候选 {kind}"],
+                textposition="bottom center" if kind == "SC" else "top center",
+                textfont=dict(size=10, color=m["color"]),
+                marker=dict(symbol=m["symbol"] + "-open", size=12, color=m["color"], line=dict(width=2, color=m["color"])),
+                hovertext=[
+                    f"<b>候选 {kind}（{EVENT_INFO[kind]['zh']}）</b><br>{day.date()}<br>"
+                    f"<span style='color:{MUTED}'>振幅和成交量已达到高潮日标准，但还没等到随后的反向走势（AR），"
+                    f"所以还不算确认，可能被否定</span>"
+                ],
+                hoverinfo="text",
+            ),
+            row=1, col=1,
+        )
+
     # 默认显示最近 bars 根
     start = df.index[max(0, len(df) - bars)]
     visible = df.loc[start:]
-    pad = (visible["high"].max() - visible["low"].min()) * 0.08
-    fig.update_xaxes(range=[start, df.index[-1] + pd.Timedelta(days=5)], rangeslider_visible=False, row=1, col=1)
-    fig.update_xaxes(range=[start, df.index[-1] + pd.Timedelta(days=5)], row=2, col=1)
+    fig.update_yaxes(range=[0, float(visible["volume"].max()) * 1.1], row=2, col=1)
+    pad = (visible["high"].max() - visible["low"].min()) * 0.14
+    fig.update_xaxes(range=[start, df.index[-1] + pd.Timedelta(days=12)], rangeslider_visible=False, row=1, col=1)
+    fig.update_xaxes(range=[start, df.index[-1] + pd.Timedelta(days=12)], row=2, col=1)
     fig.update_yaxes(range=[visible["low"].min() - pad, visible["high"].max() + pad], row=1, col=1)
     fig.update_layout(
         height=620,
@@ -164,6 +188,42 @@ def build_figure(a: SymbolAnalysis, bars: int = 320) -> go.Figure:
     )
     fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])] if a.market == "us" else [])
     return fig
+
+
+def candidate_point(a: SymbolAnalysis) -> tuple[str, pd.Timestamp] | None:
+    """当前候选高潮的类型和日期。日期取候选状态持续期间的最低点（SC）或最高点（BC）。"""
+    kind = a.current.get("candidate")
+    ph = a.result.phases
+    if not kind or ph.empty or "candidate" not in ph:
+        return None
+    is_cand = (ph["candidate"] == kind).to_numpy()
+    i = len(is_cand)
+    while i > 0 and is_cand[i - 1]:
+        i -= 1
+    run = a.df.iloc[i:]
+    if run.empty:
+        return None
+    return kind, (run["low"].idxmin() if kind == "SC" else run["high"].idxmax())
+
+
+def chart_note(a: SymbolAnalysis, bars: int = 320) -> str | None:
+    """默认视野里没有任何已确认事件时，告诉读者为什么图上看不到标记。"""
+    df = a.df
+    if df.empty:
+        return None
+    start = df.index[max(0, len(df) - bars)]
+    events = [e for e in a.result.events if e.kind != "RANGE"]
+    if any(e.occurred >= start for e in events):
+        return None
+    cand = candidate_point(a)
+    tail = f"图上的空心标记是 {cand[1].date()} 的候选 {cand[0]}，它还没有被确认。" if cand else ""
+    if not events:
+        return f"这个标的历史上还没有识别出任何事件，所以图上没有标记。{tail}"
+    last = events[-1]
+    return (
+        f"图上默认显示最近 {bars} 根 K 线（{start.date()} 起），这段时间没有已确认的事件，所以看不到标记。"
+        f"最近一次是 {last.occurred.date()} 的 {last.label}。{tail}点上方的“3 年”或“全部”可以看到更早的标记和区间。"
+    )
 
 
 def figure_json(a: SymbolAnalysis) -> str:

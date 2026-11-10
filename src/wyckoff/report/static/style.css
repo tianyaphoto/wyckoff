@@ -201,3 +201,8 @@ td.plain { color: var(--ink-2); min-width: 180px; }
 .terms.wide dt { color: var(--ink); font-size: 14px; }
 .terms.wide dd { margin: 0; font-size: 14px; color: var(--ink-2); }
 @media (max-width: 600px) { .terms.wide { grid-template-columns: 1fr; gap: 2px 0; } .terms.wide dd { margin-bottom: 10px; } }
+
+.chart-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 18px 0; font-size: 12px; }
+.chart-tools .muted:last-child { margin-left: auto; }
+.chart-note { margin: 12px 18px 0; }
+.alert.info { background: var(--accent-soft); color: var(--ink-2); border: 1px solid #C9DBF5; }
