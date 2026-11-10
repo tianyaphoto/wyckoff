@@ -24,5 +24,6 @@ default:
   breakout_volume_ratio: 1.5
   phase_d_bars: 20          # 突破后多少根 K 线内算 D 阶段，之后为 E
   min_history_bars: 200     # 历史不足此数的标的标注“数据不足”
+  long_baseline_bars: 60    # 高潮日的第二套基线：过去 N 日平均波幅和中位成交量，任一套达标即可；0 关闭
 us: {}
 crypto: {}

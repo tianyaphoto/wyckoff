@@ -10,6 +10,20 @@
     <p class="sub">每类事件从确认日收盘入场，吸筹侧做多、派发侧做空，看之后 5、20、60 根 K 线的收益。基准是同一标的任意一天入场的平均收益。超额收益的 95% 置信区间不跨 0 且样本 ≥ {{ MIN_SAMPLES }} 才算显著。</p>
   </div>
 </div>
+<details class="card explainer section" open>
+  <summary>这张表怎么读</summary>
+  <div class="card-body">
+    <p>这一页回答一个问题：<strong>历史上，这些威克夫信号出现之后跟着做，比随便挑一天做更赚钱吗？</strong>做法是在几十到上百个标的、十几年的日线上把每类事件都找出来，假设在确认日收盘买入（派发类事件为卖出做空），看之后的结果。</p>
+    <ul>
+      <li><strong>样本</strong>：这类事件历史上出现过多少次。少于 {{ MIN_SAMPLES }} 次不下结论。</li>
+      <li><strong>胜率</strong>：持有若干天后赚钱的比例。注意美股长期上涨，随便买的胜率本来就超过 50%。</li>
+      <li><strong>均收益</strong>：平均每次赚多少。</li>
+      <li><strong>超额</strong>：比“同一个标的随便哪天入场”平均多赚多少。<strong>这一列才是关键</strong>：接近 0 或为负，说明信号没用。下面小字是 95% 置信区间，区间跨过 0 就不能排除是运气。</li>
+      <li><strong>最大不利</strong>：持有期间平均最多浮亏多少。</li>
+      <li><strong>结论</strong>：只看 20 天持有期。“不显著”表示统计上看不出比基准好。</li>
+    </ul>
+  </div>
+</details>
 {% if not stats %}
 <div class="card"><div class="empty"><strong>还没有统计结果</strong>运行 <code>wyckoff backtest</code> 在回测标的池上重算一次，大约需要几分钟。</div></div>
 {% else %}
@@ -47,6 +61,7 @@
   </table>
   </div>
   <div class="legend-note">
+    <strong>{{ stats_bottom_line(mk.stats) }}</strong>
     {% if m == 'us' %}美股标的池按当前标普 100 成分股统计，存在幸存者偏差：被剔除的弱势股不在池中，吸筹类信号的结果会偏乐观。{% endif %}
     {% if m == 'crypto' %}加密货币按币安 UTC 0 点切分日线，成交量为 USDT 成交额。{% endif %}
     样本少于 {{ MIN_SAMPLES }} 的分组只显示数字，不给结论。

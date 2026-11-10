@@ -85,6 +85,8 @@ class Params:
     breakout_volume_ratio: float = 1.5
     phase_d_bars: int = 20
     min_history_bars: int = 200
+    # 长基线：高潮日也可以用过去 N 日的中位成交量和平均真实波幅来衡量；0 表示关闭
+    long_baseline_bars: int = 0
 
 
 def load_params(market: Market, paths: Paths | None = None) -> Params:

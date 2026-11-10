@@ -76,6 +76,10 @@ def create_app(paths: Paths | None = None, service: DataService | None = None) -
     def watchlist_page():
         return page("watchlist.html", items=watchlist.load(), active="watchlist")
 
+    @app.get("/guide", response_class=HTMLResponse)
+    def guide_page():
+        return HTMLResponse(renderer.guide_page())
+
     @app.get("/stats", response_class=HTMLResponse)
     def stats_page():
         return HTMLResponse(renderer.stats_page(active="stats"))

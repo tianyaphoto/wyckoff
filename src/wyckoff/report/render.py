@@ -13,6 +13,7 @@ from ..backtest.stats import HORIZONS, MIN_SAMPLES
 from ..config import MARKET_NAMES, MARKETS, Market, Paths
 from ..detector.events import CONFIDENCE_ZH, EVENT_INFO, PHASE_ZH, STRUCTURE_ZH, event_name, phase_name
 from .charts import figure_json
+from .explain import EVENT_PLAIN, PHASE_STEPS, explain, row_plain, schematic_svg, stats_bottom_line
 
 TEMPLATES = Path(__file__).parent / "templates"
 STATIC = Path(__file__).parent / "static"
@@ -67,6 +68,12 @@ def make_env() -> Environment:
             "MARKETS": MARKETS,
             "HORIZONS": HORIZONS,
             "MIN_SAMPLES": MIN_SAMPLES,
+            "EVENT_PLAIN": EVENT_PLAIN,
+            "PHASE_STEPS": PHASE_STEPS,
+            "explain": explain,
+            "row_plain": row_plain,
+            "schematic_svg": schematic_svg,
+            "stats_bottom_line": stats_bottom_line,
             "DISCLAIMER": DISCLAIMER,
             "VERSION": __version__,
             "CSS": (STATIC / "style.css").read_text(encoding="utf-8"),
@@ -89,6 +96,7 @@ class ReportRenderer:
             "link_overview": "/" if self.web else "./index.html",
             "link_stats": "/stats" if self.web else "./stats.html",
             "link_watchlist": "/watchlist" if self.web else None,
+            "link_guide": "/guide" if self.web else "./guide.html",
         }
         base.update(kw)
         return base
@@ -102,6 +110,11 @@ class ReportRenderer:
     def overview_page(self, analyses: list[SymbolAnalysis], **kw) -> str:
         rows = [x.to_overview_row() for x in analyses]
         return self.render("overview.html", rows=rows, analyses=analyses, **kw)
+
+    def guide_page(self, **kw) -> str:
+        from ..config import load_params
+
+        return self.render("guide.html", p=load_params("us", self.analyzer.paths), active="guide", **kw)
 
     def stats_page(self, **kw) -> str:
         return self.render("stats.html", stats=self.analyzer.stats_json(), **kw)
@@ -135,4 +148,7 @@ def render_reports(
     st = out_dir / "stats.html"
     st.write_text(r.stats_page(), encoding="utf-8")
     written.append(st)
+    gd = out_dir / "guide.html"
+    gd.write_text(r.guide_page(), encoding="utf-8")
+    written.append(gd)
     return written

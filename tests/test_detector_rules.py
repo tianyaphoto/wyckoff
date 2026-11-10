@@ -273,3 +273,54 @@ def test_pure_trend_without_consolidation_has_no_structure(params):
     r = detect(b.frame(), params)
     assert r.structures == []
     assert r.current()["trend"] == "上升趋势"
+
+
+# ---------------------------------------------------------------- 长基线（慢崩盘）
+
+
+def slow_crash_scenario() -> tuple[pd.DataFrame, int]:
+    """波动和成交量先慢慢放大 25 根，再出现高潮日：短基线被抬高后认不出，长基线认得出。"""
+    b = ScenarioBuilder(200.0)
+    b.calm(80)
+    for k in range(25):
+        amp = 1.0 + 1.3 * k / 24
+        vol = 1e6 * (1.0 + 1.2 * k / 24)
+        o = b.price
+        c = o - 0.8
+        b.bar(o, o + amp / 2 - 0.4, c - amp / 2 + 0.4, c, vol)
+    sc = len(b.rows)
+    o = b.price
+    b.bar(o, o + 0.2, o - 3.4, o - 2.8, 4.0e6)
+    for _ in range(5):  # AR：反弹
+        o = b.price
+        b.bar(o, o + 1.8, o - 0.3, o + 1.4, 1.5e6)
+    for _ in range(3):  # 回落确认
+        o = b.price
+        b.bar(o, o + 0.3, o - 1.6, o - 1.2, 1e6)
+    b.calm(10)
+    return b.frame(), sc
+
+
+def test_long_baseline_catches_climax_after_slow_crash(params):
+    df, sc = slow_crash_scenario()
+    assert "SC" not in kinds(detect(df, params)), "短基线下这一天不该被认成 SC"
+    r = detect(df, replace(params, long_baseline_bars=60))
+    e = event(r, "SC")
+    assert df.index.get_loc(e.occurred) == sc
+    assert "60 日长基线" in e.rule
+
+
+def test_long_baseline_off_by_default_and_adds_nothing_to_textbook_case(params):
+    assert params.long_baseline_bars == 0
+    df, _ = accumulation_scenario()
+    a = detect(df, params)
+    b = detect(df, replace(params, long_baseline_bars=60))
+    assert [(e.kind, e.occurred) for e in a.events] == [(e.kind, e.occurred) for e in b.events]
+
+
+def test_long_baseline_mirror_symmetry(params):
+    df, _ = slow_crash_scenario()
+    p = replace(params, long_baseline_bars=60)
+    a = detect(df, p)
+    m = detect(mirror(df, 400.0), p)
+    assert [(MIRROR[e.kind], e.occurred) for e in a.events] == [(e.kind, e.occurred) for e in m.events]

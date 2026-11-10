@@ -51,7 +51,7 @@ def test_render_reports_writes_all_files_in_chinese(tmp_paths, service):
     items = [("us", "AAA"), ("us", "BBB"), ("crypto", "CCC/USDT")]
     written = render_reports(an, items)
     names = {p.name for p in written}
-    assert names == {"us_AAA.html", "us_BBB.html", "crypto_CCC_USDT.html", "index.html", "stats.html"}
+    assert names == {"us_AAA.html", "us_BBB.html", "crypto_CCC_USDT.html", "index.html", "stats.html", "guide.html"}
     html = (tmp_paths.reports / "us_AAA.html").read_text(encoding="utf-8")
     assert "Spring（弹簧/假跌破）" in html and "SC（抛售高潮）" in html
     assert "不构成投资建议" in html
@@ -59,6 +59,31 @@ def test_render_reports_writes_all_files_in_chinese(tmp_paths, service):
     assert "Plotly.newPlot" in html
     idx = (tmp_paths.reports / "index.html").read_text(encoding="utf-8")
     assert "AAA" in idx and "CCC/USDT" in idx and "./us_AAA.html" in idx
+    # 解释性内容：详情页的大白话解读、总览的读表说明、新手说明页
+    assert "这是什么意思" in html and "接下来看什么" in html and "什么情况下作废" in html
+    assert "这张表怎么看" in idx and "一句话解读" in idx
+    guide = (tmp_paths.reports / "guide.html").read_text(encoding="utf-8")
+    assert "新手说明" in guide and guide.count("<svg") == 2 and "长基线" in guide
+
+
+def test_explain_covers_every_phase_and_no_structure(tmp_paths, service):
+    from wyckoff.report.explain import explain, row_plain
+
+    an = Analyzer(tmp_paths, service)
+    a = an.analyze("us", "AAA")
+    for kind in ("accumulation", "distribution", None):
+        for phase in ("A", "B", "C", "D", "E") if kind else (None,):
+            for cand in (None, "SC") if phase == "A" else (None,):
+                a.current = {"kind": kind, "phase": phase, "confidence": "low", "trend": "震荡",
+                             "lower": 90.0, "upper": 110.0, "candidate": cand}
+                ex = explain(a)
+                assert all(ex[k] and "None" not in ex[k] for k in ("title", "now", "watch", "invalid"))
+                assert row_plain(a.current)
+
+
+def test_guide_page_served(client):
+    r = client.get("/guide")
+    assert r.status_code == 200 and "新手说明" in r.text and "吸筹的五步" in r.text
 
 
 def test_report_shows_only_confirmed_events(tmp_paths, service):

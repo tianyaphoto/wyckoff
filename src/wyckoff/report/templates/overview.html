@@ -20,15 +20,28 @@
 </div>
 {% if web %}<div id="tasks" hx-get="/tasks" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>{% endif %}
 
+<details class="card explainer section" open>
+  <summary>这张表怎么看</summary>
+  <div class="card-body">
+    <p>这个工具每天检查每个标的的日线，找一种固定的走势形态：<strong>放量暴跌（或暴涨）→ 反弹（或回落）→ 横盘 → 假跌破（或假突破）→ 真突破</strong>。这套形态来自威克夫理论，它认为大资金会在横盘区间里慢慢买入或卖出。</p>
+    <ul>
+      <li><strong>当前阶段</strong>：标的走到了这五步里的哪一步（A 到 E）。绿色“吸筹”是大跌之后的形态，理论上后面看涨；红色“派发”是大涨之后的形态，理论上后面看跌。“无结构”表示最近没有出现这种形态，这是最常见的状态。</li>
+      <li><strong>一句话解读</strong>：把阶段翻译成大白话。</li>
+      <li><strong>最近事件</strong>：最近一次被确认的关键 K 线，比如 SC 是放量暴跌那天。</li>
+    </ul>
+    <p class="muted">重要：工具只描述形态，不预测价格。回测显示这些信号在历史上没有稳定跑赢“随便哪天买”，详见「事件统计」。第一次用建议先看 <a href="{{ link_guide }}">新手说明</a>。</p>
+  </div>
+</details>
+
 <div class="card flush section">
   <div class="table-wrap">
   <table class="table">
     <thead><tr>
-      <th>标的</th><th class="r">收盘</th><th>当前阶段</th><th>最近事件</th><th class="r">数据截至</th><th></th>
+      <th>标的</th><th class="r">收盘</th><th>当前阶段</th><th>一句话解读</th><th>最近事件</th><th class="r">数据截至</th><th></th>
     </tr></thead>
     <tbody id="overview-rows">
     {% if rows %}{% include '_overview_rows.html' %}{% else %}
-    <tr><td colspan="6"><div class="empty"><strong>自选清单是空的</strong>{% if web %}到「自选清单」页面添加标的。{% else %}编辑 config/watchlist.yaml 添加标的。{% endif %}</div></td></tr>
+    <tr><td colspan="7"><div class="empty"><strong>自选清单是空的</strong>{% if web %}到「自选清单」页面添加标的。{% else %}编辑 config/watchlist.yaml 添加标的。{% endif %}</div></td></tr>
     {% endif %}
     </tbody>
   </table>

@@ -65,6 +65,7 @@ class _State:
     h_max: float = -np.inf  # 定向后反弹最高
     h_idx: int = -1
     rebound: bool = False
+    long_opened: bool = False  # 这个结构是靠长基线开启的（证据较弱）
     # range 阶段
     lower_o: float = 0.0
     upper_o: float = 0.0
@@ -100,6 +101,9 @@ class Detector:
         low_n = f["low_n"].to_numpy()
         high_n = f["high_n"].to_numpy()
         rng = f["range"].to_numpy()
+        atr_long = f["atr_long"].to_numpy()
+        volr_long = f["vol_ratio_long"].to_numpy()
+        use_long = p.long_baseline_bars > 0
         dates = f.index
 
         events: list[Event] = []
@@ -122,16 +126,29 @@ class Detector:
                 return close[i], high[i], low[i]
             return -close[i], -low[i], -high[i]
 
-        def climax_fires(i: int, d: int) -> bool:
+        def climax_fires(i: int, d: int, allow_long: bool = False) -> bool:
+            # 长基线只用来在空闲状态下开启新结构；已有结构里的重新锚定仍只看短基线，
+            # 否则慢崩盘里每个新低都会把高潮日往后挪。
             if d == +1:
                 trend_ok = close[i] < sma[i]
                 extreme_ok = low[i] < low_n[i]
             else:
                 trend_ok = close[i] > sma[i]
                 extreme_ok = high[i] > high_n[i]
+            if not (trend_ok and extreme_ok):
+                return False
+            if rng[i] >= p.climax_range_atr * atr[i] and volr[i] >= p.climax_volume_ratio:
+                return True
+            return allow_long and long_fires(i)
+
+        def long_fires(i: int) -> bool:
+            """长基线下的振幅和量比条件（NaN 比较为 False）。"""
             return bool(
-                trend_ok and extreme_ok and rng[i] >= p.climax_range_atr * atr[i] and volr[i] >= p.climax_volume_ratio
+                use_long and rng[i] >= p.climax_range_atr * atr_long[i] and volr_long[i] >= p.climax_volume_ratio
             )
+
+        def short_fires(i: int) -> bool:
+            return bool(rng[i] >= p.climax_range_atr * atr[i] and volr[i] >= p.climax_volume_ratio)
 
         def start_climax(i: int, d: int):
             nonlocal next_id, st
@@ -193,12 +210,24 @@ class Detector:
             if not valid:
                 continue
 
+            # 靠长基线开启、区间还没确认的结构，遇到短基线下的反向高潮就让位（弱证据让位于强证据）
+            yielded = False
+            if st.mode in (CLIMAX, RANGE) and st.long_opened and not st.range_confirmed and climax_fires(i, -st.d):
+                nd = -st.d
+                end_structure(i, "new_climax")
+                start_climax(i, nd)
+                yielded = True
+
             d = st.d
             if st.mode == IDLE:
                 for dd in (+1, -1):
-                    if climax_fires(i, dd):
+                    if climax_fires(i, dd, allow_long=True):
                         start_climax(i, dd)
+                        st.long_opened = not short_fires(i)
                         break
+
+            elif yielded:
+                pass  # 新结构当天只登记高潮，和空闲状态下开启时一致
 
             elif st.mode == CLIMAX:
                 oc, oh, ol = oriented(i, d)
@@ -242,8 +271,14 @@ class Detector:
                                 i,
                                 s.climax_price,
                                 f"{cdir}趋势中（收盘在 {p.trend_sma} 日均线{'下' if d == 1 else '上'}方），"
-                                f"当日振幅 ≥ {p.climax_range_atr:g} 倍 ATR，量比 ≥ {p.climax_volume_ratio:g}，"
-                                f"创 {p.extreme_lookback} 日新{'低' if d == 1 else '高'}；在 AR 确认时一并确认",
+                                + (
+                                    f"当日振幅 ≥ {p.climax_range_atr:g} 倍 ATR，量比 ≥ {p.climax_volume_ratio:g}，"
+                                    if short_fires(st.c_idx) or not long_fires(st.c_idx)
+                                    else f"按 {p.long_baseline_bars} 日长基线：当日振幅 ≥ {p.climax_range_atr:g} 倍"
+                                    f"{p.long_baseline_bars} 日平均波幅，成交量 ≥ {p.climax_volume_ratio:g} 倍"
+                                    f"{p.long_baseline_bars} 日中位量，"
+                                )
+                                + f"创 {p.extreme_lookback} 日新{'低' if d == 1 else '高'}；在 AR 确认时一并确认",
                                 volr[st.c_idx],
                             )
                             emit(

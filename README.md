@@ -25,7 +25,7 @@ uv run wyckoff analyze NVDA BTC/USDT   # 只分析指定标的
 uv run wyckoff serve                   # 本地 Web 服务 → http://127.0.0.1:8000
 ```
 
-Web 页面能看总览、标的详情、事件统计，还能新增和删除自选标的。它只监听本机，没有登录。
+Web 页面能看总览、标的详情、事件统计，还能新增和删除自选标的。第一次用先看「新手说明」页（`/guide`），每个页面也都带大白话解读。它只监听本机，没有登录。
 
 离线演示：`WYCKOFF_FAKE_DATA=1 uv run wyckoff serve` 会用合成行情代替真实数据源。
 
@@ -59,7 +59,7 @@ src/wyckoff/
   detector/        逐日推进的状态机：区间、8 种事件、A–E 阶段
   backtest/        前瞻收益、基准、bootstrap 显著性
   analysis.py      把数据、识别、统计串起来
-  report/          plotly 图表 + Jinja2 模板，命令行和 Web 共用
+  report/          plotly 图表 + Jinja2 模板，命令行和 Web 共用；explain.py 负责大白话解读
   web/             FastAPI + HTMX，后台任务存 SQLite
   cli.py           typer 命令行
   synthetic.py     合成行情：随机游走、手搭场景、镜像

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% set active = 'guide' %}
+{% block title %}新手说明 · 威克夫量价分析{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>新手说明</h1>
+    <p class="sub">五分钟看懂这个工具在做什么、每个页面怎么读、哪些结论可以信。</p>
+  </div>
+</div>
+
+<div class="card section guide">
+  <div class="card-head"><h2>1. 这个工具在做什么</h2></div>
+  <div class="card-body">
+    <p>它每天读取美股和加密货币的日线（每天一根 K 线：开盘、最高、最低、收盘、成交量），在里面找一种固定的走势形态，然后告诉你每个标的现在走到了形态的哪一步。</p>
+    <p>这种形态来自一百年前的交易员理查德·威克夫。他的想法很简单：<strong>大资金买卖的量太大，没法一天完成，只能在一个横盘区间里慢慢做</strong>。所以大跌之后如果出现一段放量的横盘，可能是有人在悄悄买入（叫“吸筹”），之后会涨；大涨之后的放量横盘，可能是有人在悄悄卖出（叫“派发”），之后会跌。</p>
+    <p>工具<strong>不预测价格，不给买卖点，不自动下单</strong>。它只做两件事：按写死的规则识别形态；用历史数据检验这些形态之后的涨跌。</p>
+  </div>
+</div>
+
+<div class="card section guide">
+  <div class="card-head"><h2>2. 形态长什么样：吸筹的五步</h2></div>
+  <div class="card-body">
+    {{ schematic_svg('accumulation') }}
+    <ol class="guide-steps">
+      <li><b>SC 抛售高潮</b>（A 阶段开始）。{{ EVENT_PLAIN.SC.look }}工具的判断标准：当天振幅至少是平时的 {{ p.climax_range_atr | num(1) }} 倍，成交量至少是平时的 {{ p.climax_volume_ratio | num(1) }} 倍，并且创 {{ p.extreme_lookback }} 日新低。</li>
+      <li><b>AR 自动反弹</b>。{{ EVENT_PLAIN.AR.look }}SC 的最低价和 AR 的最高价，就是区间的下沿和上沿。</li>
+      <li><b>交易区间</b>（B 阶段）。{{ EVENT_PLAIN.RANGE.look }}</li>
+      <li><b>Spring 假跌破</b>（C 阶段）。{{ EVENT_PLAIN.SPRING.look }}{{ EVENT_PLAIN.SPRING.mean }}</li>
+      <li><b>SOS 强势突破</b>（D 阶段）。{{ EVENT_PLAIN.SOS.look }}之后超过 {{ p.phase_d_bars }} 根 K 线就算 E 阶段，趋势展开。</li>
+    </ol>
+    <p>不是每个区间都会走完五步。很多区间没有 Spring 就直接突破，更多的区间会失败：价格顺着原来的方向直接离开。</p>
+  </div>
+</div>
+
+<div class="card section guide">
+  <div class="card-head"><h2>3. 派发：把图上下翻过来</h2></div>
+  <div class="card-body">
+    {{ schematic_svg('distribution') }}
+    <p>派发和吸筹的规则完全对称。BC（买入高潮）对应 SC，UTAD（假突破）对应 Spring，SOW（弱势跌破）对应 SOS。页面上吸筹用<span style="color:var(--acc);font-weight:600">绿色</span>，派发用<span style="color:var(--dist);font-weight:600">红色</span>。</p>
+  </div>
+</div>
+
+<div class="card section guide">
+  <div class="card-head"><h2>4. 三个要先懂的词</h2></div>
+  <div class="card-body"><dl class="terms wide">
+    <dt>ATR（平时波动）</dt><dd>一个标的平时一天波动多少。比如某只股票 ATR 是 3 美元，那么某天上下波动了 7 美元，就是 2.3 倍 ATR，算“特别大”。用倍数而不用绝对金额，是为了让 500 美元的股票和 0.1 美元的币能用同一套规则。</dd>
+    <dt>量比（成交量是平时的几倍）</dt><dd>当天成交量 ÷ 过去 {{ p.volume_period }} 天平均成交量。量比 2.5 表示成交量是平时的两倍半。威克夫理论很看重成交量：放量的大跌才算高潮。</dd>
+    <dt>发生日和确认日</dt><dd>发生日是那根 K 线的日期。确认日是工具最早能认出它的日期，通常晚几天。比如 SC 要等后面出现 AR 才能确认，否则它只是又一根大阴线。<strong>所有统计都从确认日算起</strong>，因为现实中你在确认日之前并不知道那天是 SC。</dd>
+    {% if p.long_baseline_bars %}<dt>长基线</dt><dd>连续暴跌几周后，“平时”的波动和成交量已经被抬高，真正的高潮日反而显得不突出（2020 年 3 月的美股就是这样）。所以工具同时用过去 {{ p.long_baseline_bars }} 天的水平再比一次，任一种比法达标都算高潮日。</dd>{% endif %}
+  </dl></div>
+</div>
+
+<div class="card section guide">
+  <div class="card-head"><h2>5. 每个页面怎么用</h2></div>
+  <div class="card-body"><dl class="terms wide">
+    <dt><a href="{{ link_overview }}">总览</a></dt><dd>自选清单里每个标的一行。先看“当前阶段”和“一句话解读”，对哪个感兴趣就点代码进去。</dd>
+    <dt>标的详情</dt><dd>最上面的“这是什么意思”用大白话说明现在的情况、接下来看什么、什么情况下这个判断作废。下面的 K 线图上，虚线框是工具画出的区间，三角和星号是事件，把鼠标放上去能看到触发它的具体规则。再往下是最近一年的事件和历史上所有的区间。</dd>
+    {% if web %}<dt><a href="{{ link_watchlist }}">自选清单</a></dt><dd>新增或删除标的。美股输入代码（如 AMD），加密货币输入币名（如 DOGE）。新增后工具会在后台下载历史数据，几秒到几十秒后出现在总览里。</dd>{% endif %}
+    <dt><a href="{{ link_stats }}">事件统计</a></dt><dd>历史检验的结果：每类事件出现之后跟着做，比随便哪天做多赚还是少赚。</dd>
+  </dl></div>
+</div>
+
+<div class="card section guide">
+  <div class="card-head"><h2>6. 哪些结论可以信</h2></div>
+  <div class="card-body">
+    <ul>
+      <li><strong>可以信的</strong>：工具对形态的描述是客观的。同样的数据永远得到同样的结果，每个事件都能在图上看到触发它的规则，识别时没有偷看未来的数据。</li>
+      <li><strong>不能信的</strong>：“吸筹之后会涨、派发之后会跌”。在 100 多只美股和 20 个加密货币十几年的数据上检验过，绝大多数事件类型之后的收益和随便哪天入场没有显著差别。详见<a href="{{ link_stats }}">事件统计</a>。</li>
+      <li><strong>已知的盲点</strong>：缩量见底的行情认不出（没有放量就没有高潮日）；区间确认前出现的假突破不记录；威克夫本来很依赖人的主观判断，写成硬规则后和人工看图的结果大约有八成一致。</li>
+    </ul>
+    <p>所以比较合理的用法是：把它当成一个<strong>每天帮你看图、把值得留意的形态标出来</strong>的助手，而不是信号灯。</p>
+    <p class="muted small">{{ DISCLAIMER }}</p>
+  </div>
+</div>
+{% endblock %}

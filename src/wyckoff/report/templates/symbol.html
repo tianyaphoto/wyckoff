@@ -26,6 +26,25 @@
   <div><span class="price num">{{ a.last_close | price }}</span>{{ b.change(a.change_pct) }}</div>
 </div>
 
+{% set ex = explain(a) %}
+<div class="card section explain-card">
+  <div class="card-head"><h2>这是什么意思</h2><span class="hint"><a href="{{ link_guide }}">不熟悉这些词？看新手说明</a></span></div>
+  <div class="card-body">
+    <h3 class="explain-title">{{ ex.title }}</h3>
+    {% if ex.steps %}
+    <ol class="steps">
+      {% for k, name, on in ex.steps %}<li class="{{ 'on' if on }}{{ ' done' if k < ex.phase }}"><b>{{ k }}</b>{{ name }}</li>{% endfor %}
+    </ol>
+    {% endif %}
+    <dl class="explain">
+      <dt>现在的情况</dt><dd>{{ ex.now }}{% if ex.confidence %} {{ ex.confidence }}{% endif %}</dd>
+      <dt>接下来看什么</dt><dd>{{ ex.watch }}</dd>
+      <dt>什么情况下作废</dt><dd>{{ ex.invalid }}</dd>
+    </dl>
+    <p class="muted small">{{ ex.caveat }}</p>
+  </div>
+</div>
+
 {% for w in a.quality.warnings %}<div class="alert warn">{{ w }}</div>{% endfor %}
 
 <div class="grid cols-4 section">
@@ -38,7 +57,7 @@
     <div class="value">{% if a.latest_event %}{{ b.event_badge(a.latest_event.kind) }}{% else %}—{% endif %}</div>
     <div class="note">{% if a.latest_event %}{{ a.latest_event.confirmed.date() }} 确认 · {{ cur.days_since_event }} 天前{% else %}历史上没有识别出事件{% endif %}</div></div>
   <div class="card stat"><div class="label">趋势（{{ a.params.trend_sma }} 日均线）</div><div class="value">{{ cur.trend or '—' }}</div>
-    <div class="note">ATR {{ a.result.frame['atr'].iloc[-1] | num }} · 量比 {{ a.result.frame['vol_ratio'].iloc[-1] | num }}</div></div>
+    <div class="note">平时每天波动约 {{ a.result.frame['atr'].iloc[-1] | num }}（ATR）· 今天成交量是平时的 {{ a.result.frame['vol_ratio'].iloc[-1] | num }} 倍（量比）</div></div>
 </div>
 
 <div class="card section">
@@ -52,6 +71,11 @@
 
 <div class="card flush section">
   <div class="card-head"><h2>最近一年的事件</h2><span class="hint">统计列来自回测标的池（{{ a.market_zh }}），持有 20 根 K 线</span></div>
+  <div class="legend-note top">
+    <strong>发生日</strong>是那根 K 线的日期；<strong>确认日</strong>是工具最早能认出它的日期，总是晚几天，因为要等后面的走势来证实。
+    <strong>量比</strong>是当天成交量相当于平时的几倍。<strong>历史胜率 · 平均收益 · 超额</strong>是过去同类事件在确认日买入（派发类为卖出）、持有 20 天的结果；
+    “超额”是比随便哪天入场多赚的部分，接近 0 或为负说明这个信号没有带来额外好处。<strong>结论</strong>为“不显著”就是统计上看不出优势。
+  </div>
   <div class="table-wrap">
   <table class="table">
     <thead><tr><th>事件</th><th>发生日</th><th>确认日</th><th class="r">价格</th><th class="r">量比</th><th>历史胜率 · 平均收益 · 超额</th><th>结论</th></tr></thead>
@@ -59,7 +83,7 @@
     {% for ev in a.recent_events %}
     {% set e = ev.event %}
     <tr>
-      <td>{{ b.event_badge(e.kind) }}{% if e.volume_class %}<span class="sub">{{ e.volume_class }}</span>{% endif %}<span class="sub rule" title="{{ e.rule }}">{{ e.rule }}</span></td>
+      <td>{{ b.event_badge(e.kind) }}{% if e.volume_class %}<span class="sub">{{ e.volume_class }}</span>{% endif %}<span class="sub plain-sub">{{ EVENT_PLAIN[e.kind].mean }}</span><span class="sub rule" title="{{ e.rule }}">触发规则：{{ e.rule }}</span></td>
       <td class="num">{{ e.occurred.date() }}</td>
       <td class="num">{{ e.confirmed.date() }}{% if e.confirmed != e.occurred %}<span class="sub">{{ (e.confirmed - e.occurred).days }} 天后</span>{% endif %}</td>
       <td class="r num">{{ e.price | price }}</td>
@@ -78,6 +102,7 @@
 {% if a.result.structures %}
 <div class="card flush section">
   <div class="card-head"><h2>历史交易区间</h2><span class="hint">共 {{ a.result.structures | length }} 个</span></div>
+  <div class="legend-note top">每一行是工具历史上画出过的一个区间。<strong>结局</strong>最值得看：“突破”表示按理论走完了；“区间失败”表示价格没按理论走，直接顺着原来的方向离开了区间；“突破后回到区间”表示突破是假的。失败的行很多，这正说明形态并不可靠。</div>
   <div class="table-wrap">
   <table class="table">
     <thead><tr><th>类型</th><th>高潮日</th><th class="r">下沿</th><th class="r">上沿</th><th>区间确认</th><th>测试</th><th>突破</th><th>结束</th><th>结局</th></tr></thead>
@@ -103,10 +128,13 @@
 <div class="card section">
   <div class="card-head"><h2>术语说明</h2></div>
   <div class="card-body"><dl class="terms">
-    {% for k, info in EVENT_INFO.items() %}<dt>{{ event_name(k) }}（{{ info.zh }}）</dt><dd>{{ info.desc }}</dd>{% endfor %}
-    <dt>阶段 A–E</dt><dd>A 止跌/止涨 → B 区间震荡 → C 测试（Spring/UTAD）→ D 突破 → E 趋势展开</dd>
-    <dt>ATR</dt><dd>平均真实波幅，衡量一个标的平时每天波动多大；所有阈值都用它的倍数表示</dd>
-    <dt>量比</dt><dd>当日成交量 ÷ 过去 {{ a.params.volume_period }} 日平均成交量</dd>
+    {% for k, info in EVENT_INFO.items() %}<dt>{{ event_name(k) }}（{{ info.zh }}）</dt><dd>{{ EVENT_PLAIN[k].look }}{{ EVENT_PLAIN[k].mean }}</dd>{% endfor %}
+    <dt>吸筹 / 派发</dt><dd>吸筹是大跌之后的横盘，理论上大资金在买；派发是大涨之后的横盘，理论上大资金在卖。两者的规则互为镜像。</dd>
+    <dt>阶段 A–E</dt><dd>A 止跌/止涨 → B 区间震荡 → C 测试（Spring/UTAD）→ D 突破 → E 趋势展开。越往后证据越多。</dd>
+    <dt>可信度</dt><dd>徽章右边的三个点。一个亮：只有高潮和 AR；两个亮：区间也满了 {{ a.params.range_min_bars }} 根 K 线；三个亮：还出现过测试。</dd>
+    <dt>ATR</dt><dd>平均真实波幅，就是这个标的平时一天的波动幅度。工具用“几倍 ATR”来判断一根 K 线算不算特别大，这样贵的股票和便宜的币可以用同一套规则。</dd>
+    <dt>量比</dt><dd>当天成交量 ÷ 过去 {{ a.params.volume_period }} 天的平均成交量。2.5 就是平时的两倍半。</dd>
+    {% if a.params.long_baseline_bars %}<dt>长基线</dt><dd>连续暴跌几周后，“平时”的波动和成交量本身已经被抬高，高潮日反而显得不突出。所以工具同时用过去 {{ a.params.long_baseline_bars }} 天的水平再比一次，任一种比法达标都算高潮日。</dd>{% endif %}
   </dl>
   <p class="muted small mt-8">{{ DISCLAIMER }}</p></div>
 </div>
